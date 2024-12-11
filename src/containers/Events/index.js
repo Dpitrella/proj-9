@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EventCard from "../../components/EventCard";
 import Select from "../../components/Select";
 import { useData } from "../../contexts/DataContext";
@@ -10,66 +10,68 @@ import "./style.css";
 const PER_PAGE = 9;
 
 const EventList = () => {
-  const { data, error } = useData();
-  const [type, setType] = useState();
+  const { data } = useData();
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const filteredEvents = (
-    (!type
-      ? data?.events
-      : data?.events) || []
-  ).filter((event, index) => {
-    if (
-      (currentPage - 1) * PER_PAGE <= index &&
-      PER_PAGE * currentPage > index
-    ) {
-      return true;
+  const [selectedType, setSelectedType] = useState("");
+
+  useEffect(() => {
+    if (data?.events) {
+      setFilteredEvents(
+        selectedType
+          ? data.events.filter((event) => event.type === selectedType)
+          : data.events
+      );
+      setCurrentPage(1); // Reset to first page when changing filter
     }
-    return false;
-  });
-  
-  const changeType = (evtType) => {
-    setCurrentPage(1);
-    setType(evtType);
+  }, [data, selectedType]);
+
+  const handleTypeChange = (type) => {
+    setSelectedType(type === "Toutes" ? "" : type);
   };
-  const pageNumber = Math.floor((filteredEvents?.length || 0) / PER_PAGE) + 1;
-  const typeList = new Set(data?.events.map((event) => event.type));
+
+  const typeList = [...new Set(data?.events.map((event) => event.type) || [])];
+
+  const pageCount = Math.ceil(filteredEvents.length / PER_PAGE);
+  const paginatedEvents = filteredEvents.slice(
+    (currentPage - 1) * PER_PAGE,
+    currentPage * PER_PAGE
+  );
+
   return (
     <>
-      {error && <div>An error occured</div>}
-      {data === null ? (
-        "loading"
-      ) : (
-        <>
-          <h3 className="SelectTitle">Catégories</h3>
-          <Select
-            selection={Array.from(typeList)}
-            onChange={(value) => (value ? changeType(value) : changeType(null))}
-          />
-          <div id="events" className="ListContainer">
-            {filteredEvents.map((event) => (
-              <Modal key={event.id} Content={<ModalEvent event={event} />}>
-                {({ setIsOpened }) => (
-                  <EventCard
-                    onClick={() => setIsOpened(true)}
-                    imageSrc={event.cover}
-                    title={event.title}
-                    date={new Date(event.date)}
-                    label={event.type}
-                  />
-                )}
-              </Modal>
-            ))}
-          </div>
-          <div className="Pagination">
-            {[...Array(pageNumber || 0)].map((_, n) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <a key={n} href="#events" onClick={() => setCurrentPage(n + 1)}>
-                {n + 1}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
+      <h3 className="SelectTitle">Catégories</h3>
+      <Select
+        selection={typeList}
+        onChange={handleTypeChange}
+        name="type"
+      />
+      <div id="events" className="ListContainer">
+        {paginatedEvents.map((event) => (
+          <Modal key={event.id} Content={<ModalEvent event={event} />}>
+            {({ setIsOpened }) => (
+              <EventCard
+                onClick={() => setIsOpened(true)}
+                imageSrc={event.cover}
+                title={event.title}
+                date={new Date(event.date)}
+                label={event.type}
+              />
+            )}
+          </Modal>
+        ))}
+      </div>
+      <div className="Pagination">
+        {[...Array(pageCount)].map((_, index) => (
+          <a
+            key={`page-${index + 1}`}
+            href="#events"
+            onClick={() => setCurrentPage(index + 1)}
+          >
+            {index + 1}
+          </a>
+        ))}
+      </div>
     </>
   );
 };

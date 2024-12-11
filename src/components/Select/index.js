@@ -16,9 +16,9 @@ const Select = ({
   const [value, setValue] = useState();
   const [collapsed, setCollapsed] = useState(true);
   const changeValue = (newValue) => {
-    onChange();
     setValue(newValue);
-    setCollapsed(newValue);
+    setCollapsed(true); // Cerrar el menú desplegable después de seleccionar
+    onChange(newValue); // Llamar a la función onChange con el nuevo valor
   };
   return (
     <div className={`SelectContainer ${type}`} data-testid="select-testid">
